@@ -3,11 +3,11 @@ package utils
 import (
     "encoding/json"
     "fmt"
+    "log"
     "net/http"
     "os"
     "sort"
     "stock_prices_api/models"
-    "time"
     "strconv"
 )
 
@@ -19,6 +19,9 @@ func FetchStockPrices(symbols []string) ([]models.Stock, error) {
 
     var stocks []models.Stock
     for _, symbol := range symbols {
+        // Log the symbol being used in the HTTP request
+        log.Printf("Fetching data for symbol: %s", symbol)
+
         url := fmt.Sprintf("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&apikey=%s", symbol, apiKey)
         response, err := http.Get(url)
         if err != nil {
@@ -31,36 +34,38 @@ func FetchStockPrices(symbols []string) ([]models.Stock, error) {
             return nil, err
         }
 
+        // Debugging: Print the raw response
+        log.Printf("Raw response for %s: %v", symbol, result)
+
+        if message, exists := result["Error Message"]; exists {
+            return nil, fmt.Errorf("API error: %s", message)
+        }
+
         timeSeries, ok := result["Time Series (Daily)"].(map[string]interface{})
         if !ok {
-            return nil, fmt.Errorf("unexpected response format")
+            return nil, fmt.Errorf("unexpected response format: %v", result)
         }
 
         // Find the most recent date
-        var dates []time.Time
+        var dates []string
         for dateStr := range timeSeries {
-            date, err := time.Parse("2006-01-02", dateStr)
-            if err != nil {
-                continue
-            }
-            dates = append(dates, date)
+            dates = append(dates, dateStr)
         }
 
-        sort.Slice(dates, func(i, j int) bool {
-            return dates[i].After(dates[j])
-        })
+        sort.Strings(dates)
+        mostRecentDate := dates[len(dates)-1]
 
-        if len(dates) == 0 {
-            return nil, fmt.Errorf("no data available")
-        }
-
-        mostRecentDate := dates[0].Format("2006-01-02")
         mostRecentData, ok := timeSeries[mostRecentDate].(map[string]interface{})
         if !ok {
-            return nil, fmt.Errorf("unexpected response format for most recent data")
+            return nil, fmt.Errorf("unexpected response format for most recent data: %v", result)
         }
 
-        price, err := strconv.ParseFloat(mostRecentData["4. close"].(string), 64)
+        priceStr, ok := mostRecentData["4. close"].(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected price format: %v", mostRecentData)
+        }
+
+        price, err := strconv.ParseFloat(priceStr, 64)
         if err != nil {
             return nil, err
         }

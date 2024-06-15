@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -6,7 +5,6 @@ import (
     "net/http"
     "github.com/gorilla/mux"
     "github.com/joho/godotenv"
-    //"os"
     "stock_prices_api/handlers"
 )
 
@@ -17,7 +15,7 @@ func main() {
     }
 
     router := mux.NewRouter()
-    router.HandleFunc("/api/stocks/{company}", handlers.GetStockPrices).Methods("GET")
+    router.HandleFunc("/api/stocks/{ticker}", handlers.GetStockPrices).Methods("GET")
     log.Fatal(http.ListenAndServe(":8000", router))
 }
 
