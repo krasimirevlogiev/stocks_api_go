@@ -1,1 +1,3 @@
-An API written entirely in Go for displaying stock prices for different companies
+# Stock Price API in Golang
+
+
