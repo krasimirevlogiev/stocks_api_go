@@ -26,5 +26,7 @@ Then you give requests to the API using the following command:
 curl http://localhost:8000/api/stocks/company_symbol
 ```
 
+Or use the script in the folder scripts
+
 
 
